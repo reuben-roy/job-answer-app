@@ -1,0 +1,902 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Job Answer Generator</title>
+    <script src="config.js"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #f5f5f5;
+        --surface: #ffffff;
+        --border: #e0e0e0;
+        --accent: #2563eb;
+        --accent-hover: #1d4ed8;
+        --text: #1a1a1a;
+        --muted: #6b7280;
+        --success: #16a34a;
+        --radius: 10px;
+        --shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      header {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 14px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      header h1 {
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+      header span {
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+
+      .btn-link {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--accent);
+        font-size: 0.85rem;
+        text-decoration: underline;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 0;
+        flex: 1;
+        max-height: calc(100vh - 53px);
+      }
+
+      /* ---- Sidebar ---- */
+      .sidebar {
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        overflow-y: auto;
+        padding: 16px 12px;
+      }
+
+      .sidebar h2 {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin: 12px 6px 6px;
+      }
+      .sidebar h2:first-child {
+        margin-top: 0;
+      }
+
+      .q-btn {
+        display: block;
+        width: 100%;
+        background: none;
+        border: none;
+        text-align: left;
+        padding: 7px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.82rem;
+        color: var(--text);
+        line-height: 1.4;
+        transition: background 0.12s;
+      }
+      .q-btn:hover {
+        background: #f0f4ff;
+      }
+      .q-btn.active {
+        background: #dbeafe;
+        color: var(--accent);
+        font-weight: 500;
+      }
+
+      /* ---- Main ---- */
+      .main {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .question-area {
+        padding: 20px 24px 0;
+      }
+
+      .question-area label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      textarea {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 12px 14px;
+        font-size: 0.95rem;
+        font-family: inherit;
+        resize: vertical;
+        min-height: 90px;
+        background: var(--surface);
+        transition: border-color 0.15s;
+      }
+      textarea:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+
+      .controls {
+        padding: 12px 24px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .btn {
+        padding: 9px 20px;
+        border-radius: 7px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        transition:
+          background 0.15s,
+          opacity 0.15s;
+      }
+      .btn-primary {
+        background: var(--accent);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: var(--accent-hover);
+      }
+      .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .btn-secondary {
+        background: none;
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+      .btn-secondary:hover {
+        background: #f5f5f5;
+      }
+
+      .divider {
+        flex: 1;
+      }
+
+      /* ---- Answer area ---- */
+      .answer-wrapper {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 24px 24px;
+      }
+
+      .answer-box {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        min-height: 200px;
+        padding: 16px 18px;
+        font-size: 0.95rem;
+        line-height: 1.7;
+        white-space: pre-wrap;
+        position: relative;
+      }
+
+      .answer-box.empty {
+        color: var(--muted);
+        font-style: italic;
+      }
+
+      .answer-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .answer-header span {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+      }
+
+      .copy-btn {
+        padding: 5px 12px;
+        font-size: 0.8rem;
+        border-radius: 5px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        cursor: pointer;
+        color: var(--text);
+        transition: background 0.12s;
+      }
+      .copy-btn:hover {
+        background: #f0f4ff;
+      }
+      .copy-btn.copied {
+        color: var(--success);
+        border-color: var(--success);
+      }
+
+      /* ---- Spinner ---- */
+      .spinner {
+        display: none;
+        width: 18px;
+        height: 18px;
+        border: 2px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      .spinner.visible {
+        display: inline-block;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* ---- Error ---- */
+      .error-msg {
+        display: none;
+        color: #dc2626;
+        font-size: 0.85rem;
+        padding: 8px 12px;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 6px;
+        margin: 0 24px 12px;
+      }
+      .error-msg.visible {
+        display: block;
+      }
+
+      /* ---- Settings modal ---- */
+      .overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.35);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+      }
+      .overlay.open {
+        display: flex;
+      }
+
+      .modal {
+        background: var(--surface);
+        border-radius: 12px;
+        width: min(700px, 95vw);
+        max-height: 85vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+      }
+
+      .modal-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .modal-header h2 {
+        font-size: 1rem;
+      }
+
+      .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.3rem;
+        cursor: pointer;
+        color: var(--muted);
+        line-height: 1;
+      }
+
+      .modal-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .modal-body label {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .modal-body textarea {
+        min-height: 140px;
+        font-size: 0.85rem;
+      }
+
+      .modal-footer {
+        padding: 12px 20px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+
+      /* ---- Toast ---- */
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: #1a1a1a;
+        color: #fff;
+        padding: 9px 18px;
+        border-radius: 7px;
+        font-size: 0.85rem;
+        opacity: 0;
+        transition:
+          opacity 0.2s,
+          transform 0.2s;
+        pointer-events: none;
+        z-index: 200;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      /* Generate button inner layout */
+      #generate-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      /* Word count */
+      .word-count {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-top: 6px;
+        text-align: right;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Job Answer Generator</h1>
+      <div style="display: flex; gap: 16px; align-items: center">
+        <span id="model-label"></span>
+        <button class="btn-link" onclick="openSettings()">
+          Edit Context &amp; Rules
+        </button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <!-- Sidebar: predefined questions -->
+      <aside class="sidebar">
+        <h2>Motivational</h2>
+        <button class="q-btn" onclick="selectQ(this)">
+          Why do you want to work here?
+        </button>
+        <button class="q-btn" onclick="selectQ(this)">
+          Why are you interested in this role?
+        </button>
+        <button class="q-btn" onclick="selectQ(this)">
+          What makes you a good fit for this position?
+        </button>
+        <button class="q-btn" onclick="selectQ(this)">
+          Why are you leaving your current role?
+        </button>
+
+        <h2>Experience &amp; Achievements</h2>
+        <button class="q-btn" onclick="selectQ(this)">
+          Describe a challenge you faced and how you overcame it.
+        </button>
+        <button class="q-btn" onclick="selectQ(this)">
+          Tell us about a project you are proud of.
+        </button>
+        <button class="q-btn" onclick="selectQ(this)">
+          What is your greatest professional achievement?
+        </button>
+        <button class="q-btn" onclick="selectQ(this)">
+          Describe a time you worked cross-functionally with other teams.
+        </button>
+
+        <h2>Work Style</h2>
+        <button class="q-btn" onclick="selectQ(this)">
+          Describe your ideal work environment.
+        </button>
+        <button class="q-btn" onclick="selectQ(this)">
+          How do you prioritize tasks when everything feels urgent?
+        </button>
+        <button class="q-btn" onclick="selectQ(this)">
+          What are your strengths and weaknesses?
+        </button>
+        <button class="q-btn" onclick="selectQ(this)">
+          Describe your leadership or management style.
+        </button>
+
+        <h2>Career Goals</h2>
+        <button class="q-btn" onclick="selectQ(this)">
+          Where do you see yourself in 5 years?
+        </button>
+        <button class="q-btn" onclick="selectQ(this)">
+          What are you looking for in your next role?
+        </button>
+        <button class="q-btn" onclick="selectQ(this)">
+          What do you want to learn or grow in this position?
+        </button>
+
+        <h2>Culture Fit</h2>
+        <button class="q-btn" onclick="selectQ(this)">
+          Tell us something that is not on your resume.
+        </button>
+        <button class="q-btn" onclick="selectQ(this)">
+          What does a great team look like to you?
+        </button>
+        <button class="q-btn" onclick="selectQ(this)">
+          What motivates you at work?
+        </button>
+
+        <h2>Cover Letters</h2>
+        <button class="q-btn" onclick="selectQ(this)">
+          Write a cover letter for this role.
+        </button>
+        <button class="q-btn" onclick="selectQ(this)">
+          Write a short cover letter (3 paragraphs).
+        </button>
+      </aside>
+
+      <!-- Main panel -->
+      <div class="main">
+        <div class="question-area">
+          <div style="display: flex; gap: 16px; margin-bottom: 14px">
+            <div style="flex: 1">
+              <label for="job-desc-input">Job Description</label>
+              <textarea
+                id="job-desc-input"
+                style="min-height: 72px; font-size: 0.83rem"
+                placeholder="Paste the job description here. The AI will tailor answers to this role…"
+                oninput="state.jobDescription = this.value"
+              ></textarea>
+            </div>
+          </div>
+          <label for="question-input">Question</label>
+          <textarea
+            id="question-input"
+            placeholder="Select a question from the list, or type your own here…"
+            style="min-height: 60px"
+          ></textarea>
+          <div style="margin-top: 10px">
+            <label for="question-context-input"
+              >Extra Context for This Question
+              <span
+                style="
+                  font-weight: 400;
+                  text-transform: none;
+                  letter-spacing: 0;
+                "
+                >(optional)</span
+              ></label
+            >
+            <textarea
+              id="question-context-input"
+              style="min-height: 52px; font-size: 0.83rem"
+              placeholder="e.g. Focus on my work at Acme Corp, mention the data pipeline project, keep it under 100 words…"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button
+            class="btn btn-primary"
+            id="generate-btn"
+            onclick="generate()"
+          >
+            <div class="spinner" id="spinner"></div>
+            <span id="generate-btn-text">Generate Answer</span>
+          </button>
+          <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
+          <div class="divider"></div>
+        </div>
+
+        <div class="error-msg" id="error-msg"></div>
+
+        <div class="answer-wrapper">
+          <div class="answer-header">
+            <span>Answer</span>
+            <button class="copy-btn" id="copy-btn" onclick="copyAnswer()">
+              Copy
+            </button>
+          </div>
+          <div class="answer-box empty" id="answer-box">
+            Your generated answer will appear here.
+          </div>
+          <div class="word-count" id="word-count"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings modal -->
+    <div class="overlay" id="overlay" onclick="overlayClick(event)">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Context &amp; Rules</h2>
+          <button class="modal-close" onclick="closeSettings()">
+            &#x2715;
+          </button>
+        </div>
+        <div class="modal-body">
+          <div>
+            <label for="ctx-input">Your Resume / Context</label>
+            <textarea id="ctx-input" style="min-height: 180px"></textarea>
+          </div>
+          <div>
+            <label for="examples-input">Example Answers (optional)</label>
+            <textarea id="examples-input" style="min-height: 100px"></textarea>
+          </div>
+          <div>
+            <label for="rules-input">Writing Rules (one per line)</label>
+            <textarea id="rules-input" style="min-height: 120px"></textarea>
+          </div>
+          <div id="apikey-row">
+            <label for="apikey-input"
+              >API Key
+              <span
+                style="
+                  font-weight: 400;
+                  text-transform: none;
+                  letter-spacing: 0;
+                  font-size: 0.75rem;
+                "
+                >(only needed when opening as file://)</span
+              ></label
+            >
+            <textarea
+              id="apikey-input"
+              style="min-height: 48px; resize: none"
+            ></textarea>
+            <p style="margin-top: 6px; font-size: 0.78rem; color: var(--muted)">
+              To keep your key secure, run
+              <code
+                style="
+                  background: #f3f4f6;
+                  padding: 1px 5px;
+                  border-radius: 4px;
+                "
+                >node server.js</code
+              >
+              and add it to
+              <code
+                style="
+                  background: #f3f4f6;
+                  padding: 1px 5px;
+                  border-radius: 4px;
+                "
+                >.env</code
+              >
+              instead.
+            </p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeSettings()">
+            Cancel
+          </button>
+          <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+      // ── Runtime state (starts from config.js, can be overridden in UI) ──────────
+      let state = {
+        apiKey: CONFIG.apiKey,
+        model: CONFIG.model,
+        context: CONFIG.context.trim(),
+        exampleAnswers: CONFIG.exampleAnswers.trim(),
+        rules: CONFIG.rules,
+        jobDescription: "",
+      };
+
+      document.getElementById("model-label").textContent = state.model;
+
+      // ── Question selection ──────────────────────────────────────────────────────
+      function selectQ(btn) {
+        document
+          .querySelectorAll(".q-btn")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById("question-input").value =
+          btn.textContent.trim();
+      }
+
+      // ── Detect server mode vs file:// mode ─────────────────────────────────────
+      const SERVER_MODE =
+        window.location.protocol === "http:" ||
+        window.location.protocol === "https:";
+
+      // ── Generate answer ─────────────────────────────────────────────────────────
+      async function generate() {
+        const question = document.getElementById("question-input").value.trim();
+        if (!question) {
+          showToast("Please enter or select a question.");
+          return;
+        }
+
+        // In file:// mode the key must be in config.js or set via the UI
+        if (
+          !SERVER_MODE &&
+          (!state.apiKey || state.apiKey.startsWith("AIzaSy_YOUR"))
+        ) {
+          showError(
+            "No API key set. Either run via the local server (node server.js) to use .env, or set the key via 'Edit Context & Rules'.",
+          );
+          return;
+        }
+
+        setLoading(true);
+        clearError();
+
+        const rulesText = Array.isArray(state.rules)
+          ? state.rules.map((r, i) => `${i + 1}. ${r}`).join("\n")
+          : state.rules;
+
+        const systemPrompt = `You are a professional job application assistant.
+      Your job is to write high-quality, personalised answers to job application questions on behalf of the candidate.
+
+      Before writing the final answer, please think step-by-step to plan the best response matching the candidate's profile to the job. Put your reasoning inside <thinking>...</thinking> tags.
+
+      CANDIDATE CONTEXT:
+      ${state.context}
+
+      JOB DESCRIPTION:
+      ${state.jobDescription || "Not provided."}
+
+      EXAMPLE ANSWERS (for tone/style reference):
+      ${state.exampleAnswers || "None provided."}
+
+      WRITING RULES (follow all of these strictly):
+      ${rulesText}`;
+
+        const questionContext = document
+          .getElementById("question-context-input")
+          .value.trim();
+        const userPrompt = `Write an answer to the following job application question:
+
+      "${question}"${
+        questionContext
+          ? `\n\nAdditional context for this answer:\n${questionContext}`
+          : ""
+      }`;
+
+        try {
+          let res;
+
+          if (SERVER_MODE) {
+            // Route through local server — API key stays in .env, never in browser
+            res = await fetch("/api/generate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: state.model,
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  { role: "user", content: userPrompt },
+                ],
+                temperature: 0.7,
+              }),
+            });
+          } else {
+            // Direct call — API key comes from config.js or the UI
+            res = await fetch(
+              "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${state.apiKey}`,
+                },
+                body: JSON.stringify({
+                  model: state.model,
+                  messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userPrompt },
+                  ],
+                  temperature: 0.7,
+                }),
+              },
+            );
+          }
+
+          let data;
+          const text = await res.text();
+          try {
+            data = JSON.parse(text);
+          } catch (e) {
+            showError(
+              `API returned invalid JSON (HTTP ${res.status}). Raw response: ${text.slice(0, 200)}`,
+            );
+            return;
+          }
+
+          if (!res.ok) {
+            const msg = data?.error?.message || `API error ${res.status}`;
+            showError(msg);
+            return;
+          }
+
+          let answer = data.choices[0].message.content.trim();
+
+          // Strip reasoning block out for the final user display
+          answer = answer
+            .replace(/<thinking>[\s\S]*?<\/thinking>\s*/i, "")
+            .trim();
+
+          showAnswer(answer);
+        } catch (err) {
+          showError("Network error: " + err.message);
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      // ── UI helpers ──────────────────────────────────────────────────────────────
+      function showAnswer(text) {
+        const box = document.getElementById("answer-box");
+        box.textContent = text;
+        box.classList.remove("empty");
+        const words = text.split(/\s+/).filter(Boolean).length;
+        document.getElementById("word-count").textContent = `${words} words`;
+        document.getElementById("copy-btn").classList.remove("copied");
+        document.getElementById("copy-btn").textContent = "Copy";
+      }
+
+      function clearAll() {
+        document.getElementById("question-input").value = "";
+        document.getElementById("question-context-input").value = "";
+        document
+          .querySelectorAll(".q-btn")
+          .forEach((b) => b.classList.remove("active"));
+        const box = document.getElementById("answer-box");
+        box.textContent = "Your generated answer will appear here.";
+        box.classList.add("empty");
+        document.getElementById("word-count").textContent = "";
+        clearError();
+      }
+
+      function setLoading(on) {
+        document.getElementById("generate-btn").disabled = on;
+        document.getElementById("spinner").classList.toggle("visible", on);
+        document.getElementById("generate-btn-text").textContent = on
+          ? "Generating..."
+          : "Generate Answer";
+      }
+
+      function showError(msg) {
+        const el = document.getElementById("error-msg");
+        el.textContent = msg;
+        el.classList.add("visible");
+      }
+
+      function clearError() {
+        document.getElementById("error-msg").classList.remove("visible");
+      }
+
+      function copyAnswer() {
+        const text = document.getElementById("answer-box").textContent;
+        if (
+          !text ||
+          document.getElementById("answer-box").classList.contains("empty")
+        )
+          return;
+        navigator.clipboard.writeText(text).then(() => {
+          const btn = document.getElementById("copy-btn");
+          btn.textContent = "Copied!";
+          btn.classList.add("copied");
+          setTimeout(() => {
+            btn.textContent = "Copy";
+            btn.classList.remove("copied");
+          }, 2000);
+        });
+      }
+
+      function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 2500);
+      }
+
+      // Also allow Cmd/Ctrl+Enter to generate from either text field
+      ["question-input", "question-context-input"].forEach((id) => {
+        document.getElementById(id).addEventListener("keydown", (e) => {
+          if ((e.metaKey || e.ctrlKey) && e.key === "Enter") generate();
+        });
+      });
+
+      // ── Settings modal ──────────────────────────────────────────────────────────
+      function openSettings() {
+        document.getElementById("ctx-input").value = state.context;
+        document.getElementById("examples-input").value = state.exampleAnswers;
+        document.getElementById("rules-input").value = Array.isArray(
+          state.rules,
+        )
+          ? state.rules.join("\n")
+          : state.rules;
+        document.getElementById("apikey-input").value = state.apiKey;
+        // Show/hide the API key field based on mode
+        const keyRow = document.getElementById("apikey-row");
+        keyRow.style.display = SERVER_MODE ? "none" : "block";
+        if (SERVER_MODE) {
+          keyRow.previousElementSibling &&
+            (keyRow.previousElementSibling.style.display = "none");
+        }
+        document.getElementById("overlay").classList.add("open");
+      }
+
+      function closeSettings() {
+        document.getElementById("overlay").classList.remove("open");
+      }
+
+      function overlayClick(e) {
+        if (e.target === document.getElementById("overlay")) closeSettings();
+      }
+
+      function saveSettings() {
+        state.context = document.getElementById("ctx-input").value.trim();
+        state.exampleAnswers = document
+          .getElementById("examples-input")
+          .value.trim();
+        state.rules = document
+          .getElementById("rules-input")
+          .value.split("\n")
+          .map((r) => r.trim())
+          .filter(Boolean);
+        state.apiKey = document.getElementById("apikey-input").value.trim();
+        closeSettings();
+        showToast("Settings saved.");
+      }
+    </script>
+  </body>
+</html>
