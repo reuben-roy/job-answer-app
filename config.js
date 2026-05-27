@@ -4,19 +4,23 @@
 
 const CONFIG = {
     // ----------------------------------------------------------
-    // 1. Gemini API key
-    //    Only used when opening index.html directly as a file://.
-    //    When running via `node server.js`, put your key in .env instead.
-    //    Get a free key at https://aistudio.google.com/app/apikey
+    // 1. API keys (ONLY used in file:// mode)
+    //    When running via `node server.js` or Vercel, put keys in env vars instead.
+    //
+    //    OpenRouter: https://openrouter.ai/keys
+    //    Gemini:     https://aistudio.google.com/app/apikey
     // ----------------------------------------------------------
-    apiKey: "AIzaSy_YOUR_API_KEY_HERE",
+    openRouterApiKey: "sk-or-v1_YOUR_API_KEY_HERE",
+    geminiApiKey: "AIzaSy_YOUR_API_KEY_HERE",
 
     // ----------------------------------------------------------
-    // 2. Model
-    //    gemini-2.5-flash  – fast and capable (recommended)
-    //    gemini-2.5-pro    – slower, stronger reasoning
+    // 2. Provider + model presets
     // ----------------------------------------------------------
-    model: "gemini-2.5-flash",
+    provider: "openrouter", // "openrouter" | "gemini"
+    models: {
+        openrouter: "openrouter/free",
+        gemini: "gemini-2.5-flash",
+    },
 
     // ----------------------------------------------------------
     // 3. Your resume / context

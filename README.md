@@ -1,10 +1,10 @@
 # job-answer-app
 
-> A single-page tool that uses Google Gemini to generate tailored job-application answers from your resume and writing rules.
+> A single-page tool that uses OpenRouter to generate tailored job-application answers from your resume and writing rules.
 
 ## What It Does
 
-Paste a job-application question, select a tone, and get a first-person answer crafted from your own resume context. The app proxies requests to Google Gemini so your API key never reaches the browser in server mode.
+Paste a job-application question, select a tone, and get a first-person answer crafted from your own resume context. The app proxies requests to OpenRouter so your API key never reaches the browser in server mode.
 
 ### Features
 
@@ -21,7 +21,7 @@ Paste a job-application question, select a tone, and get a first-person answer c
 | Frontend | Vanilla HTML / CSS / JavaScript |
 | Backend | Node.js `http` + `https` (zero dependencies) |
 | Vercel API | Serverless function (`api/generate.js`) |
-| LLM | Google Gemini (`gemini-2.5-flash` or `gemini-2.5-pro`) |
+| LLM | OpenRouter (`openrouter/free`) |
 
 ## Quick Start
 
@@ -29,7 +29,7 @@ Paste a job-application question, select a tone, and get a first-person answer c
 
 ```bash
 # 1. Create an .env file
-echo "GEMINI_API_KEY=your_actual_key" > .env
+echo "OPENROUTER_API_KEY=your_actual_key" > .env
 
 # 2. Start the server
 node server.js
@@ -40,7 +40,7 @@ node server.js
 ### Option B: Open directly (no server)
 
 1. Open `index.html` in a browser.
-2. Paste your Gemini API key into `config.js` (field `apiKey`).
+2. Paste your OpenRouter API key into `config.js` (field `apiKey`).
 3. Edit `config.js` to include your own resume in the `context` field.
 4. Adjust `rules` to match your voice.
 
@@ -50,7 +50,7 @@ node server.js
 vercel --prod
 ```
 
-The `vercel.json` routes `/api/generate` to the serverless function. Add `GEMINI_API_KEY` to your Vercel environment variables.
+The `vercel.json` routes `/api/generate` to the serverless function. Add `OPENROUTER_API_KEY` to your Vercel environment variables.
 
 ## Configuration
 
@@ -58,8 +58,8 @@ All personal content lives in `config.js`:
 
 | Field | What to put there |
 |-------|-------------------|
-| `apiKey` | Gemini API key (used only in `file://` mode) |
-| `model` | `gemini-2.5-flash` (fast) or `gemini-2.5-pro` (stronger reasoning) |
+| `apiKey` | OpenRouter API key (used only in `file://` mode) |
+| `model` | `openrouter/free` |
 | `context` | Your resume / professional overview |
 | `exampleAnswers` | Real answers you’ve written (optional — improves voice matching) |
 | `rules` | Writing constraints (tone, length, clichés to avoid) |
@@ -69,7 +69,7 @@ All personal content lives in `config.js`:
 ```
 index.html          # Single-page UI (question input, tone picker, answer output)
 config.js           # Personal resume, rules, and API key
-server.js           # Zero-dependency Node dev server with Gemini proxy
+server.js           # Zero-dependency Node dev server with OpenRouter proxy
 api/generate.js     # Vercel serverless handler (same proxy logic)
 vercel.json         # Vercel routing rules
 ```
@@ -78,7 +78,7 @@ vercel.json         # Vercel routing rules
 
 1. The frontend collects your question, tone, and target word count.
 2. The prompt is wrapped with your resume context and writing rules.
-3. The request hits `/api/generate`, which forwards it to Gemini's OpenAI-compatible endpoint (`v1beta/openai/chat/completions`).
+3. The request hits `/api/generate`, which forwards it to OpenRouter (`/api/v1/chat/completions`).
 4. The generated answer streams back and is rendered in the UI.
 
 ## Security Notes

@@ -402,7 +402,24 @@
     <header>
       <h1>Job Answer Generator</h1>
       <div style="display: flex; gap: 16px; align-items: center">
-        <span id="model-label"></span>
+        <div style="display: flex; gap: 10px; align-items: center">
+          <select
+            id="provider-select"
+            style="
+              border: 1px solid var(--border);
+              border-radius: 8px;
+              padding: 6px 10px;
+              background: var(--surface);
+              color: var(--text);
+              font-size: 0.85rem;
+            "
+            onchange="onProviderChange(this.value)"
+          >
+            <option value="openrouter">OpenRouter Free</option>
+            <option value="gemini">Gemini</option>
+          </select>
+          <span id="model-label"></span>
+        </div>
         <button class="btn-link" onclick="openSettings()">
           Edit Context &amp; Rules
         </button>
@@ -631,15 +648,40 @@
     <script>
       // ── Runtime state (starts from config.js, can be overridden in UI) ──────────
       let state = {
-        apiKey: CONFIG.apiKey,
-        model: CONFIG.model,
+        provider: CONFIG.provider || "openrouter",
+        openRouterApiKey: CONFIG.openRouterApiKey,
+        geminiApiKey: CONFIG.geminiApiKey,
+        model:
+          (CONFIG.models && CONFIG.models[CONFIG.provider]) ||
+          (CONFIG.models && CONFIG.models.openrouter) ||
+          "openrouter/free",
         context: CONFIG.context.trim(),
         exampleAnswers: CONFIG.exampleAnswers.trim(),
         rules: CONFIG.rules,
         jobDescription: "",
       };
 
-      document.getElementById("model-label").textContent = state.model;
+      function providerLabel(p) {
+        return p === "gemini" ? "Gemini" : "OpenRouter";
+      }
+
+      function updateHeaderLabel() {
+        document.getElementById("provider-select").value = state.provider;
+        document.getElementById("model-label").textContent =
+          providerLabel(state.provider) + " · " + state.model;
+      }
+
+      updateHeaderLabel();
+
+      function onProviderChange(newProvider) {
+        state.provider = newProvider;
+        const preset =
+          (CONFIG.models && CONFIG.models[newProvider]) ||
+          (newProvider === "gemini" ? "gemini-2.5-flash" : "openrouter/free");
+        state.model = preset;
+        updateHeaderLabel();
+        showToast("Provider switched to " + providerLabel(state.provider) + ".");
+      }
 
       // ── Question selection ──────────────────────────────────────────────────────
       function selectQ(btn) {
@@ -665,10 +707,12 @@
         }
 
         // In file:// mode the key must be in config.js or set via the UI
-        if (
-          !SERVER_MODE &&
-          (!state.apiKey || state.apiKey.startsWith("AIzaSy_YOUR"))
-        ) {
+        const fileModeKey =
+          state.provider === "gemini" ? state.geminiApiKey : state.openRouterApiKey;
+        const placeholderPrefix =
+          state.provider === "gemini" ? "AIzaSy_YOUR" : "sk-or-v1_YOUR";
+
+        if (!SERVER_MODE && (!fileModeKey || fileModeKey.startsWith(placeholderPrefix))) {
           showError(
             "No API key set. Either run via the local server (node server.js) to use .env, or set the key via 'Edit Context & Rules'.",
           );
@@ -719,6 +763,7 @@
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
+                provider: state.provider,
                 model: state.model,
                 messages: [
                   { role: "system", content: systemPrompt },
@@ -729,24 +774,26 @@
             });
           } else {
             // Direct call — API key comes from config.js or the UI
-            res = await fetch(
-              "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${state.apiKey}`,
-                },
-                body: JSON.stringify({
-                  model: state.model,
-                  messages: [
-                    { role: "system", content: systemPrompt },
-                    { role: "user", content: userPrompt },
-                  ],
-                  temperature: 0.7,
-                }),
+            const url =
+              state.provider === "gemini"
+                ? "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+                : "https://openrouter.ai/api/v1/chat/completions";
+
+            res = await fetch(url, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${fileModeKey}`,
               },
-            );
+              body: JSON.stringify({
+                model: state.model,
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  { role: "user", content: userPrompt },
+                ],
+                temperature: 0.7,
+              }),
+            });
           }
 
           let data;
@@ -864,7 +911,13 @@
         )
           ? state.rules.join("\n")
           : state.rules;
-        document.getElementById("apikey-input").value = state.apiKey;
+        const keyRowLabel = document.querySelector('label[for="apikey-input"]');
+        if (keyRowLabel) {
+          keyRowLabel.innerHTML = `API Key <span style="font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 0.75rem;">(${state.provider === "gemini" ? "Gemini" : "OpenRouter"} · only needed when opening as file://)</span>`;
+        }
+
+        document.getElementById("apikey-input").value =
+          state.provider === "gemini" ? state.geminiApiKey : state.openRouterApiKey;
         // Show/hide the API key field based on mode
         const keyRow = document.getElementById("apikey-row");
         keyRow.style.display = SERVER_MODE ? "none" : "block";
@@ -893,8 +946,11 @@
           .value.split("\n")
           .map((r) => r.trim())
           .filter(Boolean);
-        state.apiKey = document.getElementById("apikey-input").value.trim();
+        const key = document.getElementById("apikey-input").value.trim();
+        if (state.provider === "gemini") state.geminiApiKey = key;
+        else state.openRouterApiKey = key;
         closeSettings();
+        updateHeaderLabel();
         showToast("Settings saved.");
       }
     </script>

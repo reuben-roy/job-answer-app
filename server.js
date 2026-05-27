@@ -1,8 +1,8 @@
 /**
  * Local dev server for Job Answer Generator
- * - Reads GEMINI_API_KEY from .env (never exposes it to the browser)
+ * - Reads OPENROUTER_API_KEY from .env (never exposes it to the browser)
  * - Serves index.html and config.js as static files
- * - Proxies POST /api/generate → Google Gemini chat completions
+ * - Proxies POST /api/generate → OpenRouter chat completions
  *
  * Requirements: Node.js 14+  (no npm install needed)
  * Usage:        node server.js
@@ -33,10 +33,14 @@ function loadEnv() {
 loadEnv();
 
 const PORT = process.env.PORT || 3000;
-const API_KEY = process.env.GEMINI_API_KEY;
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-if (!API_KEY || API_KEY.startsWith("AIzaSy_YOUR_API_KEY")) {
-  console.warn("⚠️  Warning: GEMINI_API_KEY not set in .env — requests will fail.");
+if (!OPENROUTER_API_KEY) {
+  console.warn("⚠️  Warning: OPENROUTER_API_KEY not set in .env — OpenRouter requests will fail.");
+}
+if (!GEMINI_API_KEY) {
+  console.warn("⚠️  Warning: GEMINI_API_KEY not set in .env — Gemini requests will fail.");
 }
 
 // ── MIME types ───────────────────────────────────────────────────────────────
@@ -62,20 +66,53 @@ function serveStatic(res, filePath) {
   });
 }
 
-// ── Gemini proxy ─────────────────────────────────────────────────────────────
-function proxyToGemini(req, res) {
+// ── LLM proxy (OpenRouter / Gemini) ──────────────────────────────────────────
+function proxyToLLM(req, res) {
   let body = "";
   req.on("data", chunk => (body += chunk));
   req.on("end", () => {
-    const payload = Buffer.from(body);
+    let json;
+    try {
+      json = JSON.parse(body || "{}");
+    } catch (e) {
+      res.writeHead(400, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" });
+      res.end(JSON.stringify({ error: { message: "Invalid JSON body." } }));
+      return;
+    }
+
+    const provider = (json.provider || "").toLowerCase() === "gemini" ? "gemini" : "openrouter";
+
+    let hostname;
+    let pathName;
+    let apiKey;
+    if (provider === "gemini") {
+      hostname = "generativelanguage.googleapis.com";
+      pathName = "/v1beta/openai/chat/completions";
+      apiKey = GEMINI_API_KEY;
+    } else {
+      hostname = "openrouter.ai";
+      pathName = "/api/v1/chat/completions";
+      apiKey = OPENROUTER_API_KEY;
+    }
+
+    if (!apiKey) {
+      res.writeHead(500, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" });
+      res.end(JSON.stringify({ error: { message: `${provider.toUpperCase()}_API_KEY is not set on the server.` } }));
+      return;
+    }
+
+    // Don't forward our own routing field upstream.
+    delete json.provider;
+
+    const payload = Buffer.from(JSON.stringify(json));
 
     const options = {
-      hostname: "generativelanguage.googleapis.com",
-      path: "/v1beta/openai/chat/completions",
+      hostname,
+      path: pathName,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_KEY}`,
+        "Authorization": `Bearer ${apiKey}`,
         "Content-Length": payload.length,
       },
     };
@@ -85,7 +122,7 @@ function proxyToGemini(req, res) {
       proxyRes.on("data", chunk => chunks.push(chunk));
       proxyRes.on("end", () => {
         const body = Buffer.concat(chunks);
-        console.log(`← Gemini ${proxyRes.statusCode} (${body.length} bytes)`);
+        console.log(`← ${provider === "gemini" ? "Gemini" : "OpenRouter"} ${proxyRes.statusCode} (${body.length} bytes)`);
         if (proxyRes.statusCode !== 200) {
           console.error("   Response:", body.toString().slice(0, 500));
         }
@@ -121,7 +158,7 @@ const server = http.createServer((req, res) => {
 
   // API proxy
   if (req.method === "POST" && pathname === "/api/generate") {
-    proxyToGemini(req, res);
+    proxyToLLM(req, res);
     return;
   }
 
@@ -140,5 +177,6 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`✅  Job Answer Generator running at http://localhost:${PORT}`);
-  console.log(`   API key loaded from .env: ${API_KEY ? "yes (" + API_KEY.slice(0, 8) + "...)" : "NO — add GEMINI_API_KEY to .env"}`);
+  console.log(`   OpenRouter key in .env: ${OPENROUTER_API_KEY ? "yes (" + OPENROUTER_API_KEY.slice(0, 10) + "...)" : "NO — add OPENROUTER_API_KEY"}`);
+  console.log(`   Gemini key in .env:     ${GEMINI_API_KEY ? "yes (" + GEMINI_API_KEY.slice(0, 6) + "...)" : "NO — add GEMINI_API_KEY"}`);
 });
