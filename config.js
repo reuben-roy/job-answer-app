@@ -68,7 +68,7 @@ Key Projects
 - blistering-barnacles: A hackathon project for automated stock tracking and cross-store sales suggestions. If a product isn't selling in one store but another nearby store is out of stock, the system facilitates inter-store transfers. Built with D3.js data visualization and real-time search. [Tech: Anthropic, D3.js, Docker, FullCalendar, GitHub Actions, GitHub Copilot, Go, LLMs]
 - lofty-demo-scaffold: A hackathon scaffold for a real-estate SaaS dashboard — featuring CRM functionality, a help hub, settings panel, and a command palette. Built with Next.js 15 and Tailwind CSS as a rapid prototype for demo purposes. [Tech: FullCalendar, GitHub Copilot, Go, Lucide, Next.js, RAG, React, Tailwind CSS]
 - Gamer: A placeholder repo for a life gamification tool concept — a framework for turning daily productivity into a game-like experience with quests, XP, and achievements. [Tech: ]
-- job-answer-app: A personal productivity tool that uses Gemini AI to generate polished answers to job application questions. Reads a config file with resume context, skills, and writing rules to produce tailored, human-sounding responses for cover letters and applications. [Tech: Gemini, Go, Java, JavaScript, LLMs, Node.js, OpenAI, Vercel]
+- job-answer-app: A personal productivity tool that uses Gemini AI to generate polished answers to job application questions. Reads a config file with resume context, skills, and writing rules to produce tailored, human-sounding responses for cover letters and applications. [Tech: Java, JavaScript, LLMs, Node.js, Vercel]
 `,
 
     // ----------------------------------------------------------
