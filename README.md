@@ -74,6 +74,14 @@ api/generate.js     # Vercel serverless handler (same proxy logic)
 vercel.json         # Vercel routing rules
 ```
 
+## Documentation
+
+Developer-facing docs live in [`docs/`](docs/README.md):
+
+- [`docs/developer-guide.md`](docs/developer-guide.md) covers local modes, provider flow, Vercel deployment, and verification.
+- [`docs/customization.md`](docs/customization.md) explains how to replace the personal resume/rules layer and make the app useful for another user.
+- [`docs/privacy.md`](docs/privacy.md) documents API-key handling and resume-data boundaries.
+
 ## How It Works
 
 1. The frontend collects your question, tone, and target word count.
